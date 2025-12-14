@@ -1,0 +1,39 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Capability for the main window",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "opener:default",
+    "fs:default",
+    {
+      "identifier": "fs:allow-appdata-read-recursive",
+      "allow": [{ "path": "$APPDATA/SimpleTodo/**" }]
+    },
+    {
+      "identifier": "fs:allow-appdata-write-recursive",
+      "allow": [{ "path": "$APPDATA/SimpleTodo/**" }]
+    },
+    "fs:allow-exists",
+    "fs:allow-mkdir",
+    "fs:allow-read-text-file",
+    "fs:allow-write-text-file",
+    "core:window:allow-minimize",
+    "core:window:allow-close",
+    "core:window:allow-set-position",
+    "core:window:allow-set-size",
+    "core:window:allow-outer-position",
+    "core:window:allow-outer-size",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten",
+    "autostart:allow-enable",
+    "autostart:allow-disable",
+    "autostart:allow-is-enabled",
+    "notification:default",
+    "notification:allow-is-permission-granted",
+    "notification:allow-request-permission",
+    "notification:allow-notify",
+    "notification:allow-show"
+  ]
+}
