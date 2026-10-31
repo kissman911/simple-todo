@@ -16,9 +16,10 @@ const emit = defineEmits<{
 }>();
 
 const dialogRef = ref<HTMLDivElement | null>(null);
-const confirmRef = ref<HTMLButtonElement | null>(null);
+const cancelRef = ref<HTMLButtonElement | null>(null);
 
-useDialogFocus(() => props.visible, dialogRef, confirmRef, () => emit('cancel'));
+// 确认操作不可撤销，打开时聚焦「取消」，避免回车误触发
+useDialogFocus(() => props.visible, dialogRef, cancelRef, () => emit('cancel'));
 </script>
 
 <template>
@@ -34,10 +35,10 @@ useDialogFocus(() => props.visible, dialogRef, confirmRef, () => emit('cancel'))
               <p class="dialog-message">{{ message }}</p>
             </div>
             <div class="dialog-footer">
-              <button class="btn btn-cancel" @click="emit('cancel')">
+              <button ref="cancelRef" class="btn btn-cancel" @click="emit('cancel')">
                 {{ cancelText || '取消' }}
               </button>
-              <button ref="confirmRef" class="btn btn-confirm" @click="emit('confirm')">
+              <button class="btn btn-confirm" @click="emit('confirm')">
                 {{ confirmText || '确认' }}
               </button>
             </div>

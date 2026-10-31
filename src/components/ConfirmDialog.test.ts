@@ -31,10 +31,10 @@ describe('ConfirmDialog 焦点管理', () => {
     wrapper = undefined;
   });
 
-  it('打开时聚焦主按钮', async () => {
+  it('打开时聚焦「取消」，避免误触发不可撤销的操作', async () => {
     await open();
 
-    expect(document.activeElement).toBe($('.btn-confirm'));
+    expect(document.activeElement).toBe($('.btn-cancel'));
   });
 
   it('Esc 取消', async () => {
@@ -56,12 +56,12 @@ describe('ConfirmDialog 焦点管理', () => {
   it('Tab 焦点只在对话框内循环', async () => {
     await open();
 
-    // 主按钮是最后一个可聚焦元素，Tab 回到第一个
-    expect(press('Tab')).toBe(true);
-    expect(document.activeElement).toBe($('.btn-cancel'));
-
+    // 「取消」是第一个可聚焦元素，Shift+Tab 到最后一个，再 Tab 回到第一个
     expect(press('Tab', { shiftKey: true })).toBe(true);
     expect(document.activeElement).toBe($('.btn-confirm'));
+
+    expect(press('Tab')).toBe(true);
+    expect(document.activeElement).toBe($('.btn-cancel'));
 
     // 焦点跑到对话框外时 Tab 拉回对话框
     document.body.focus();
@@ -75,7 +75,7 @@ describe('ConfirmDialog 焦点管理', () => {
     trigger.focus();
 
     await open();
-    expect(document.activeElement).toBe($('.btn-confirm'));
+    expect(document.activeElement).toBe($('.btn-cancel'));
     await wrapper!.setProps({ visible: false });
     await flushPromises();
 
