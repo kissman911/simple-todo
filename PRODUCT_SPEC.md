@@ -80,7 +80,7 @@ SimpleTodo 致力于打造一款轻量级、高效的桌面待办事项应用，
   1. 加急未完成任务（置顶）
   2. 普通未完成任务（中部）
   3. 已完成任务（底部）
-- 同级任务按创建时间倒序排列
+- 未完成任务同级按创建时间倒序，已完成任务按完成时间倒序
 
 ### 2. 任务优先级
 
@@ -161,9 +161,9 @@ SimpleTodo 致力于打造一款轻量级、高效的桌面待办事项应用，
 
 ### 数据存储位置
 
-- **Windows**: `%APPDATA%\com.simpletodo.app\data.json`
-- **macOS**: `~/Library/Application Support/com.simpletodo.app/data.json`
-- **Linux**: `~/.config/com.simpletodo.app/data.json`
+- **Windows**: `%APPDATA%\com.simpletodo.app\SimpleTodo\data.json`
+- **macOS**: `~/Library/Application Support/com.simpletodo.app/SimpleTodo/data.json`
+- **Linux**: `~/.local/share/com.simpletodo.app/SimpleTodo/data.json`
 
 ### 数据结构
 
@@ -174,13 +174,13 @@ interface AppData {
 }
 
 interface Task {
-  id: string;                    // UUID
+  id: string;                    // 唯一 ID（时间戳 + 随机数）
   content: string;                // 任务内容
   completed: boolean;             // 完成状态
   createdAt: string;              // ISO 8601 时间戳
   completedAt: string | null;     // 完成时间
   timerEndTime: string | null;    // 计时器结束时间
-  timerDuration: number | null;   // 计时器时长（分钟）
+  timerDuration: number | null;   // 计时器时长（秒）
   priority: 'normal' | 'urgent';  // 优先级
 }
 
