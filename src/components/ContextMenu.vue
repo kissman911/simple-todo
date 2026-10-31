@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onUnmounted, watch } from 'vue';
+import { ref, nextTick, onUnmounted, watch } from 'vue';
 
 const props = defineProps<{
   visible: boolean;
@@ -19,6 +19,24 @@ const emit = defineEmits<{
 }>();
 
 const menuRef = ref<HTMLDivElement | null>(null);
+
+// 菜单实际位置：显示后按菜单尺寸收进窗口内，避免在小窗口里被截断
+const pos = ref({ x: props.x, y: props.y });
+
+watch(
+  () => [props.visible, props.x, props.y],
+  async () => {
+    pos.value = { x: props.x, y: props.y };
+    if (!props.visible) return;
+    await nextTick();
+    const el = menuRef.value;
+    if (!el) return;
+    pos.value = {
+      x: Math.max(0, Math.min(props.x, window.innerWidth - el.offsetWidth - 4)),
+      y: Math.max(0, Math.min(props.y, window.innerHeight - el.offsetHeight - 4)),
+    };
+  }
+);
 
 // 点击外部关闭菜单
 function handleClickOutside(event: MouseEvent) {
@@ -91,7 +109,7 @@ onUnmounted(() => {
         v-if="visible"
         ref="menuRef"
         class="context-menu"
-        :style="{ top: `${y}px`, left: `${x}px` }"
+        :style="{ top: `${pos.y}px`, left: `${pos.x}px` }"
       >
         <div class="menu-item" @click="handleEdit">
           <span class="menu-icon">✏️</span>

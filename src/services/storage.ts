@@ -1,4 +1,4 @@
-import { BaseDirectory, mkdir, readTextFile, writeTextFile, exists } from '@tauri-apps/plugin-fs';
+import { BaseDirectory, mkdir, readTextFile, writeTextFile, exists, rename } from '@tauri-apps/plugin-fs';
 import type { AppData } from '../types/task';
 import { defaultAppData } from '../types/task';
 
@@ -24,10 +24,11 @@ function getDataPath(): string {
 
 // 加载数据
 export async function loadData(): Promise<AppData> {
+  const path = getDataPath();
+  let fileExists = false;
   try {
     await ensureDataDir();
-    const path = getDataPath();
-    const fileExists = await exists(path, { baseDir: BaseDirectory.AppData });
+    fileExists = await exists(path, { baseDir: BaseDirectory.AppData });
 
     if (!fileExists) {
       // 文件不存在，返回默认数据并保存
@@ -45,18 +46,35 @@ export async function loadData(): Promise<AppData> {
     };
   } catch (error) {
     console.error('Failed to load data:', error);
+    // 文件存在却读不出来（如内容损坏）：先改名备份，避免下一次保存把它覆盖掉
+    if (fileExists) {
+      await rename(path, `${DATA_DIR}/data.corrupted-${Date.now()}.json`, {
+        oldPathBaseDir: BaseDirectory.AppData,
+        newPathBaseDir: BaseDirectory.AppData,
+      }).catch((e) => console.error('Failed to back up data file:', e));
+    }
     return defaultAppData;
   }
 }
 
-// 保存数据
+// 保存操作排队串行执行，避免并发写入时旧数据覆盖新数据
+let saveQueue: Promise<void> = Promise.resolve();
+
+// 保存数据：先写临时文件再改名替换，写到一半中断也不会破坏原文件
 export async function saveData(data: AppData): Promise<void> {
-  try {
-    await ensureDataDir();
-    const path = getDataPath();
-    const content = JSON.stringify(data, null, 2);
-    await writeTextFile(path, content, { baseDir: BaseDirectory.AppData });
-  } catch (error) {
-    console.error('Failed to save data:', error);
-  }
+  const content = JSON.stringify(data, null, 2);
+  saveQueue = saveQueue.then(async () => {
+    try {
+      await ensureDataDir();
+      const tmpPath = `${getDataPath()}.tmp`;
+      await writeTextFile(tmpPath, content, { baseDir: BaseDirectory.AppData });
+      await rename(tmpPath, getDataPath(), {
+        oldPathBaseDir: BaseDirectory.AppData,
+        newPathBaseDir: BaseDirectory.AppData,
+      });
+    } catch (error) {
+      console.error('Failed to save data:', error);
+    }
+  });
+  return saveQueue;
 }

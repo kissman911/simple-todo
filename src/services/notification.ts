@@ -50,10 +50,11 @@ export function playNotificationSound(): void {
     oscillator.start(now);
     oscillator.stop(now + 0.6);
 
-    // 清理
+    // 清理：每次播放都新建了 AudioContext，用完要关闭
     oscillator.onended = () => {
       oscillator.disconnect();
       gainNode.disconnect();
+      audioContext.close();
     };
   } catch (error) {
     console.error('Failed to play notification sound:', error);
@@ -74,11 +75,9 @@ export async function sendTaskReminder(taskContent: string): Promise<void> {
 
     await sendNotification({
       title: '⏰ 任务提醒',
-      body: taskContent,
+      body: `任务到期：${taskContent}`,
     });
   } catch (error) {
     console.error('Failed to send notification:', error);
-    // 即使通知失败，也尝试播放声音
-    playNotificationSound();
   }
 }

@@ -76,6 +76,8 @@ const completedCount = computed(() => {
 }
 
 .task-list {
+  /* 删除动画中离场的任务项是 absolute 定位，以列表为参照才不会溢出 */
+  position: relative;
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;

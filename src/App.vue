@@ -34,7 +34,9 @@ function debouncedSaveWindowState() {
   }
   saveTimeout = setTimeout(async () => {
     const state = await saveWindowState();
-    await store.updateSettings(state);
+    if (state) {
+      await store.updateSettings(state);
+    }
   }, 300);
 }
 
@@ -53,13 +55,16 @@ onMounted(async () => {
   // 恢复窗口位置和尺寸
   await restoreWindowState(store.settings.value);
 
-  // 恢复已有的计时器
+  // 恢复已有的计时器（已完成任务上残留的计时器直接清掉）
   store.tasks.value.forEach((task) => {
-    if (task.timerEndTime) {
-      startTaskTimer(task, async () => {
-        await store.cancelTaskTimer(task.id);
-      });
+    if (!task.timerEndTime) return;
+    if (task.completed) {
+      store.cancelTaskTimer(task.id);
+      return;
     }
+    startTaskTimer(task, async () => {
+      await store.cancelTaskTimer(task.id);
+    });
   });
 
   // 监听窗口移动
@@ -87,9 +92,14 @@ async function handleAddTask(content: string) {
   await store.addTask(content);
 }
 
-// 切换任务状态
+// 切换任务状态（标记完成时取消计时器）
 async function handleToggleTask(id: string) {
   await store.toggleTask(id);
+  const task = store.tasks.value.find((t) => t.id === id);
+  if (task?.completed && task.timerEndTime) {
+    stopTaskTimer(id);
+    await store.cancelTaskTimer(id);
+  }
 }
 
 // 更新任务内容
@@ -99,6 +109,7 @@ async function handleUpdateTask(id: string, content: string) {
 
 // 删除任务
 async function handleDeleteTask(id: string) {
+  stopTaskTimer(id);
   await store.deleteTask(id);
 }
 
@@ -114,6 +125,7 @@ function handleCancelClear() {
 
 // 确认清空已完成任务
 async function handleConfirmClear() {
+  store.tasks.value.filter((t) => t.completed).forEach((t) => stopTaskTimer(t.id));
   await store.clearCompleted();
   showClearConfirm.value = false;
 }

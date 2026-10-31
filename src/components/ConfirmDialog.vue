@@ -56,8 +56,8 @@ const emit = defineEmits<{
   background-color: var(--bg-color);
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  min-width: 280px;
-  max-width: 90%;
+  width: calc(100% - 24px);
+  max-width: 320px;
   overflow: hidden;
 }
 
