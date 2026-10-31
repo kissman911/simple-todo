@@ -17,6 +17,8 @@ const emit = defineEmits<{
   toggleUrgent: [id: string];
 }>();
 
+const itemRef = ref<HTMLDivElement | null>(null);
+
 // 编辑状态
 const isEditing = ref(false);
 const editContent = ref('');
@@ -103,12 +105,34 @@ function handleClick() {
   }
 }
 
+// 显示菜单
+function openMenu(x: number, y: number) {
+  menuX.value = x;
+  menuY.value = y;
+  menuVisible.value = true;
+}
+
 // 右键显示菜单
 function handleContextMenu(event: MouseEvent) {
   event.preventDefault();
-  menuX.value = event.clientX;
-  menuY.value = event.clientY;
-  menuVisible.value = true;
+  openMenu(event.clientX, event.clientY);
+}
+
+// 任务项获得焦点时的按键处理（只处理任务项本身，编辑框里的按键由 handleEditKeydown 处理）
+function handleKeydown(event: KeyboardEvent) {
+  // 输入法组合输入中的按键交给输入法处理（同 TaskInput）
+  if (event.isComposing || event.keyCode === 229) return;
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault();
+    emit('toggle', props.task.id);
+    // 切换后列表重新排序，任务项被移动时会丢失焦点，移完再聚焦回来
+    nextTick(() => itemRef.value?.focus());
+  } else if (event.key === 'ContextMenu' || (event.key === 'F10' && event.shiftKey)) {
+    event.preventDefault();
+    // 键盘打开时菜单出现在任务项左下方
+    const rect = itemRef.value!.getBoundingClientRect();
+    openMenu(rect.left + 16, rect.bottom);
+  }
 }
 
 // 关闭菜单
@@ -177,10 +201,15 @@ function handleToggleUrgent() {
 
 <template>
   <div
+    ref="itemRef"
     class="task-item"
     :class="{ completed: task.completed, editing: isEditing, 'has-timer': hasTimer, urgent: isUrgent }"
+    tabindex="0"
+    role="checkbox"
+    :aria-checked="task.completed"
     @mousedown="handleMouseDown"
     @click="handleClick"
+    @keydown.self="handleKeydown"
     @contextmenu="handleContextMenu"
   >
     <!-- 普通显示模式 -->
@@ -242,6 +271,14 @@ function handleToggleUrgent() {
 
 .task-item:hover {
   background-color: var(--hover-color, rgba(0, 0, 0, 0.03));
+}
+
+.task-item:focus {
+  outline: none;
+}
+
+.task-item:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--primary-color, #1890ff);
 }
 
 .task-item:last-child {
@@ -328,8 +365,12 @@ function handleToggleUrgent() {
   box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
 }
 
-/* 加急任务样式 */
+/* 加急任务样式（浅色背景上 #f59e0b 对比度不足，文字用深一档的橙色） */
 .task-item.urgent .task-content {
+  color: #b45309;
+}
+
+[data-theme="dark"] .task-item.urgent .task-content {
   color: #f59e0b;
 }
 

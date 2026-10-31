@@ -152,3 +152,63 @@ describe('任务计时器生命周期', () => {
     expect(mocks.reminder).not.toHaveBeenCalled();
   });
 });
+
+// 在当前焦点元素上按键
+function press(key: string, init: KeyboardEventInit = {}) {
+  const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...init });
+  (document.activeElement ?? document.body).dispatchEvent(event);
+}
+
+function taskItem(text: string) {
+  return [...document.body.querySelectorAll<HTMLElement>('.task-item')].find((el) =>
+    el.textContent?.includes(text)
+  )!;
+}
+
+describe('键盘操作', () => {
+  const idle = { timerEndTime: null, timerDuration: null };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW);
+  });
+
+  afterEach(() => {
+    wrapper?.unmount();
+    wrapper = undefined;
+    vi.useRealTimers();
+  });
+
+  it('键盘标记完成后任务移到列表末尾，焦点跟着它', async () => {
+    await mountApp([task('写周报', idle), task('买菜', idle), task('回邮件', idle)]);
+    taskItem('写周报').focus();
+
+    press('Enter');
+    await flush();
+
+    const items = [...document.body.querySelectorAll('.task-item')];
+    expect(items[items.length - 1].textContent).toContain('写周报');
+    expect(document.activeElement).toBe(taskItem('写周报'));
+  });
+
+  it('键盘打开菜单设置计时器，Esc 关闭对话框后焦点回到任务项', async () => {
+    await mountApp([task('写周报', idle)]);
+    taskItem('写周报').focus();
+
+    press('F10', { shiftKey: true });
+    await flush();
+    press('ArrowDown');
+    press('ArrowDown');
+    press('Enter');
+    await flush();
+    expect(document.activeElement).toBe(body('.btn-confirm'));
+    expect(body('.btn-confirm').textContent).toContain('开始计时');
+
+    press('Escape');
+    await flush();
+
+    expect(document.body.querySelector('.dialog')).toBeNull();
+    expect(document.activeElement).toBe(taskItem('写周报'));
+  });
+});

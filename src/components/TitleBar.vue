@@ -50,6 +50,7 @@ function getThemeIcon(t: string): string {
         :class="{ active: autoStartEnabled }"
         @click="handleToggleAutoStart"
         :title="autoStartEnabled ? '开机自启: 开' : '开机自启: 关'"
+        :aria-label="autoStartEnabled ? '开机自启: 开' : '开机自启: 关'"
       >
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
           <path d="M12 2v8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
@@ -60,15 +61,16 @@ function getThemeIcon(t: string): string {
         class="control-btn theme"
         @click="cycleTheme"
         :title="'主题: ' + getThemeLabel(theme)"
+        :aria-label="'主题: ' + getThemeLabel(theme)"
       >
         {{ getThemeIcon(theme) }}
       </button>
-      <button class="control-btn minimize" @click="minimizeWindow" title="最小化">
+      <button class="control-btn minimize" @click="minimizeWindow" title="最小化" aria-label="最小化">
         <svg width="12" height="12" viewBox="0 0 12 12">
           <rect x="2" y="5.5" width="8" height="1" fill="currentColor"/>
         </svg>
       </button>
-      <button class="control-btn close" @click="closeWindow" title="关闭">
+      <button class="control-btn close" @click="closeWindow" title="关闭" aria-label="关闭">
         <svg width="12" height="12" viewBox="0 0 12 12">
           <path d="M3 3L9 9M9 3L3 9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
         </svg>
