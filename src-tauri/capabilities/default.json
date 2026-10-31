@@ -5,7 +5,6 @@
   "windows": ["main"],
   "permissions": [
     "core:default",
-    "opener:default",
     "fs:default",
     {
       "identifier": "fs:allow-appdata-read-recursive",
@@ -25,6 +24,7 @@
     "core:window:allow-set-size",
     "core:window:allow-outer-position",
     "core:window:allow-outer-size",
+    "core:window:allow-start-dragging",
     "core:event:allow-listen",
     "core:event:allow-unlisten",
     "autostart:allow-enable",
