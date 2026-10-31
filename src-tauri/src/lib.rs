@@ -17,8 +17,8 @@ pub fn run() {
             {
                 use window_vibrancy::{apply_acrylic, apply_mica};
 
-                // Windows 11 优先使用 Mica，失败则使用 Acrylic
-                if apply_mica(&window, Some(true)).is_err() {
+                // Windows 11 优先使用 Mica（随系统明暗），失败则使用 Acrylic
+                if apply_mica(&window, None).is_err() {
                     let _ = apply_acrylic(&window, Some((18, 18, 18, 180)));
                 }
             }
