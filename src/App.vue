@@ -149,16 +149,18 @@ function handleCancelTimerDialog() {
 
 // 确认设置计时器
 async function handleConfirmTimer(duration: number) {
-  if (!timerTaskId.value) return;
+  // 先记下任务 id：等待权限期间对话框可能被取消（如预览失焦收起），timerTaskId 会被清空
+  const id = timerTaskId.value;
+  if (!id) return;
 
   // 请求通知权限
   await checkNotificationPermission();
 
   // 设置计时器
-  await store.setTaskTimer(timerTaskId.value, duration);
+  await store.setTaskTimer(id, duration);
 
   // 启动计时器监控
-  const task = store.tasks.value.find((t) => t.id === timerTaskId.value);
+  const task = store.tasks.value.find((t) => t.id === id);
   if (task) {
     startTaskTimer(task, async () => {
       // 计时器到期时，清除任务的计时器状态

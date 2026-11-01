@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   loadData: vi.fn(),
   saveData: vi.fn(async (_data: unknown) => {}),
   reminder: vi.fn(async (_content: string) => {}),
+  permission: vi.fn(async () => true),
 }));
 
 vi.mock('@tauri-apps/api/window', () => ({
@@ -22,7 +23,7 @@ vi.mock('./services/storage', () => ({
   saveData: mocks.saveData,
 }));
 vi.mock('./services/notification', () => ({
-  checkNotificationPermission: vi.fn(async () => true),
+  checkNotificationPermission: mocks.permission,
   sendTaskReminder: mocks.reminder,
 }));
 vi.mock('@tauri-apps/plugin-autostart', () => ({
@@ -150,6 +151,25 @@ describe('任务计时器生命周期', () => {
     await vi.advanceTimersByTimeAsync(301_000);
 
     expect(mocks.reminder).not.toHaveBeenCalled();
+  });
+
+  it('等待通知权限期间对话框被取消，计时器仍设在确认时的任务上', async () => {
+    let grant!: (granted: boolean) => void;
+    mocks.permission.mockImplementationOnce(() => new Promise<boolean>((resolve) => (grant = resolve)));
+    const app = await mountApp([task('写周报', { timerEndTime: null, timerDuration: null })]);
+
+    await app.find('.task-item').trigger('contextmenu');
+    menuItem('设置计时器').click();
+    await flush();
+    body('.btn-confirm').click();
+    await flush();
+    // 权限请求还没返回时对话框被取消（如预览失焦收起）
+    body('.btn-cancel').click();
+    await flush();
+    grant(true);
+    await flush();
+
+    expect(app.find('.timer-badge').exists()).toBe(true);
   });
 });
 
