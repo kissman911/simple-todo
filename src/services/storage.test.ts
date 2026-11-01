@@ -51,7 +51,7 @@ function appData(content: string): AppData {
         priority: 'normal',
       },
     ],
-    settings: { theme: 'system', windowPosition: null, windowSize: null },
+    settings: { theme: 'system', windowPosition: null, windowSize: null, dock: null },
   };
 }
 
@@ -105,5 +105,14 @@ describe('storage', () => {
     await Promise.all([saveData(appData('first')), saveData(appData('second'))]);
 
     expect(JSON.parse(fs.files.get(DATA_PATH)!).tasks[0].content).toBe('second');
+  });
+
+  it('旧数据没有贴边字段时补上默认值', async () => {
+    const old = { tasks: [], settings: { theme: 'dark', windowPosition: { x: 1, y: 2 }, windowSize: null } };
+    fs.files.set(DATA_PATH, JSON.stringify(old));
+
+    const data = await loadData();
+
+    expect(data.settings).toEqual({ ...old.settings, dock: null });
   });
 });

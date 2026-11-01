@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
 import ContextMenu from './ContextMenu.vue';
+import { useDock } from '../composables/useDock';
 
 const props = { visible: false, x: 0, y: 0, hasTimer: false, isUrgent: false };
 
@@ -91,6 +92,18 @@ describe('ContextMenu', () => {
     expect(wrapper!.emitted('close')).toHaveLength(1);
     expect(document.activeElement).toBe(trigger);
     trigger.remove();
+  });
+
+  it('预览收回成悬浮球时直接取消菜单', async () => {
+    const { mode } = useDock();
+    mode.value = 'preview';
+    await openAt(20, 40);
+
+    mode.value = 'ball';
+    await flushPromises();
+
+    expect(wrapper!.emitted('close')).toHaveLength(1);
+    mode.value = 'normal';
   });
 });
 

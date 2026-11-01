@@ -1,14 +1,17 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import type { Task } from './types/task';
 import TitleBar from './components/TitleBar.vue';
 import TaskList from './components/TaskList.vue';
 import TaskInput from './components/TaskInput.vue';
 import ConfirmDialog from './components/ConfirmDialog.vue';
 import TimerDialog from './components/TimerDialog.vue';
+import FloatingBall from './components/FloatingBall.vue';
 import { useTaskStore } from './composables/useTaskStore';
 import { startTaskTimer, stopTaskTimer } from './services/timer';
 import { checkNotificationPermission } from './services/notification';
 import { useTheme } from './composables/useTheme';
+import { useDock } from './composables/useDock';
 import { saveWindowState, restoreWindowState, onWindowMove, onWindowResize } from './services/window';
 
 // 确认对话框状态
@@ -21,6 +24,13 @@ const timerTaskContent = ref('');
 
 const store = useTaskStore();
 const { theme, init: initTheme } = useTheme();
+const dock = useDock();
+
+// 悬浮球的角标和颜色
+const pendingCount = computed(() => store.tasks.value.filter((t) => !t.completed).length);
+const hasUrgentPending = computed(() =>
+  store.tasks.value.some((t) => !t.completed && t.priority === 'urgent')
+);
 
 // 窗口事件清理函数
 let unlistenMove: (() => void) | null = null;
@@ -34,10 +44,25 @@ function debouncedSaveWindowState() {
   }
   saveTimeout = setTimeout(async () => {
     const state = await saveWindowState();
-    if (state) {
+    // 只保存普通窗口的位置和尺寸，悬浮球和预览的不能覆盖它
+    if (state && dock.mode.value === 'normal') {
       await store.updateSettings(state);
     }
   }, 300);
+}
+
+// 预览收回成悬浮球时，开着的对话框直接取消；正在编辑的任务失焦后按现有逻辑保存
+watch(dock.mode, (mode) => {
+  if (mode !== 'ball') return;
+  (document.activeElement as HTMLElement | null)?.blur();
+  handleCancelClear();
+  handleCancelTimerDialog();
+});
+
+// 计时器到期：悬浮球闪动，清除任务的计时器状态
+async function handleTimerExpired(task: Task) {
+  dock.notifyTimerExpired();
+  await store.cancelTaskTimer(task.id);
 }
 
 // 监听主题变化并保存
@@ -52,8 +77,10 @@ onMounted(async () => {
   // 初始化主题
   initTheme(store.settings.value.theme);
 
-  // 恢复窗口位置和尺寸
-  await restoreWindowState(store.settings.value);
+  // 上次退出时已贴边就直接变成悬浮球，否则恢复普通窗口的位置和尺寸
+  if (!(await dock.init())) {
+    await restoreWindowState(store.settings.value);
+  }
 
   // 恢复已有的计时器（已完成任务上残留的计时器直接清掉）
   store.tasks.value.forEach((task) => {
@@ -62,9 +89,7 @@ onMounted(async () => {
       store.cancelTaskTimer(task.id);
       return;
     }
-    startTaskTimer(task, async () => {
-      await store.cancelTaskTimer(task.id);
-    });
+    startTaskTimer(task, () => handleTimerExpired(task));
   });
 
   // 监听窗口移动
@@ -82,6 +107,7 @@ onMounted(async () => {
 onUnmounted(() => {
   unlistenMove?.();
   unlistenResize?.();
+  dock.dispose();
   if (saveTimeout) {
     clearTimeout(saveTimeout);
   }
@@ -162,10 +188,7 @@ async function handleConfirmTimer(duration: number) {
   // 启动计时器监控
   const task = store.tasks.value.find((t) => t.id === id);
   if (task) {
-    startTaskTimer(task, async () => {
-      // 计时器到期时，清除任务的计时器状态
-      await store.cancelTaskTimer(task.id);
-    });
+    startTaskTimer(task, () => handleTimerExpired(task));
   }
 
   handleCancelTimerDialog();
@@ -184,7 +207,18 @@ async function handleToggleUrgent(id: string) {
 </script>
 
 <template>
-  <div class="app-container">
+  <!-- 悬浮球 -->
+  <FloatingBall
+    v-if="dock.mode.value === 'ball'"
+    :pending-count="pendingCount"
+    :urgent="hasUrgentPending"
+    :alert="dock.alert.value"
+    :side="dock.side.value"
+    @press="dock.pressBall"
+  />
+
+  <!-- 普通窗口和预览；悬浮球时只是藏起来，输入框里没提交的内容和滚动位置都保留 -->
+  <div v-show="dock.mode.value !== 'ball'" class="app-container">
     <!-- 自定义标题栏 -->
     <TitleBar />
 

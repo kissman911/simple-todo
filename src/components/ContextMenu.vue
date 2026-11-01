@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, nextTick, onUnmounted, watch } from 'vue';
+import { useDock } from '../composables/useDock';
 
 const props = defineProps<{
   visible: boolean;
@@ -132,6 +133,12 @@ watch(
     }
   }
 );
+
+// 预览收回成悬浮球时直接取消菜单
+const { mode } = useDock();
+watch(mode, (m) => {
+  if (m === 'ball' && props.visible) emit('close');
+});
 
 onUnmounted(() => {
   document.removeEventListener('mousedown', handleClickOutside);

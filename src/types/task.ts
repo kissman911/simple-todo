@@ -1,3 +1,5 @@
+import type { DockState } from './dock';
+
 // 任务优先级
 export type TaskPriority = 'normal' | 'urgent';
 
@@ -20,6 +22,8 @@ export interface Settings {
   theme: 'light' | 'dark' | 'system';
   windowPosition: { x: number; y: number } | null;
   windowSize: { width: number; height: number } | null;
+  // 已贴边时的状态（只有 macOS 会写入），未贴边为 null
+  dock: DockState | null;
 }
 
 // 应用数据模型
@@ -33,6 +37,7 @@ export const defaultSettings: Settings = {
   theme: 'system',
   windowPosition: null,
   windowSize: null,
+  dock: null,
 };
 
 // 默认应用数据
