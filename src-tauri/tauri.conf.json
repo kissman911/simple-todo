@@ -24,6 +24,7 @@
         "resizable": true,
         "visible": true,
         "focus": true,
+        "acceptFirstMouse": true,
         "backgroundThrottling": "disabled"
       }
     ],
