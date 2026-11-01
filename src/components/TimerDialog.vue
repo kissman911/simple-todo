@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { TIMER_PRESETS } from '../services/timer';
+import { useDialogFocus } from '../composables/useDialogFocus';
 
-defineProps<{
+const props = defineProps<{
   visible: boolean;
   taskContent: string;
 }>();
@@ -11,6 +12,11 @@ const emit = defineEmits<{
   confirm: [duration: number];
   cancel: [];
 }>();
+
+const dialogRef = ref<HTMLDivElement | null>(null);
+const confirmRef = ref<HTMLButtonElement | null>(null);
+
+useDialogFocus(() => props.visible, dialogRef, confirmRef, () => emit('cancel'));
 
 // 选中的预设（-1 表示自定义）
 const selectedPreset = ref(TIMER_PRESETS[2].value); // 默认 25 分钟
@@ -48,7 +54,7 @@ function selectCustom() {
     <Transition name="fade">
       <div v-if="visible" class="dialog-overlay" @click.self="emit('cancel')">
         <Transition name="scale">
-          <div v-if="visible" class="dialog">
+          <div v-if="visible" ref="dialogRef" class="dialog">
             <div class="dialog-header">
               <h3 class="dialog-title">⏰ 设置计时器</h3>
             </div>
@@ -93,7 +99,7 @@ function selectCustom() {
               <button class="btn btn-cancel" @click="emit('cancel')">
                 取消
               </button>
-              <button class="btn btn-confirm" :disabled="finalDuration === 0" @click="handleConfirm">
+              <button ref="confirmRef" class="btn btn-confirm" :disabled="finalDuration === 0" @click="handleConfirm">
                 开始计时
               </button>
             </div>

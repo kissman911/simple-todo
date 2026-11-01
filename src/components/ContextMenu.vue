@@ -45,50 +45,87 @@ function handleClickOutside(event: MouseEvent) {
   }
 }
 
-// 按 ESC 关闭菜单
+// 打开菜单前的焦点元素，键盘关闭或执行菜单项后把焦点还给它
+let returnFocusTo: HTMLElement | null = null;
+
+// 关闭菜单并归还焦点
+function close() {
+  emit('close');
+  returnFocusTo?.focus();
+}
+
+function getItems() {
+  return [...(menuRef.value?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [])];
+}
+
+// 上下移动焦点，首尾循环
+function moveFocus(step: number) {
+  const items = getItems();
+  if (items.length === 0) return;
+  const index = items.indexOf(document.activeElement as HTMLElement);
+  const next = index === -1 ? (step > 0 ? 0 : items.length - 1) : (index + step + items.length) % items.length;
+  items[next].focus();
+}
+
+// 键盘操作：Esc 关闭，上下方向键移动，Enter 执行
 function handleKeydown(event: KeyboardEvent) {
+  // 输入法组合输入中的按键交给输入法处理（同 TaskInput）
+  if (event.isComposing || event.keyCode === 229) return;
   if (event.key === 'Escape') {
-    emit('close');
+    close();
+  } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    event.preventDefault();
+    moveFocus(event.key === 'ArrowDown' ? 1 : -1);
+  } else if (event.key === 'Enter') {
+    const item = document.activeElement as HTMLElement | null;
+    if (item && getItems().includes(item)) {
+      event.preventDefault();
+      item.click();
+    }
   }
 }
 
 // 处理编辑
 function handleEdit() {
   emit('edit');
-  emit('close');
+  close();
 }
 
 // 处理删除
 function handleDelete() {
   emit('delete');
-  emit('close');
+  close();
 }
 
 // 处理设置计时器
 function handleSetTimer() {
   emit('setTimer');
-  emit('close');
+  close();
 }
 
 // 处理取消计时器
 function handleCancelTimer() {
   emit('cancelTimer');
-  emit('close');
+  close();
 }
 
 // 处理切换加急状态
 function handleToggleUrgent() {
   emit('toggleUrgent');
-  emit('close');
+  close();
 }
 
 // 监听显示状态
 watch(
   () => props.visible,
-  (visible) => {
+  async (visible) => {
     if (visible) {
       document.addEventListener('mousedown', handleClickOutside);
       document.addEventListener('keydown', handleKeydown);
+      // 打开时焦点进到第一项
+      returnFocusTo = document.activeElement as HTMLElement | null;
+      await nextTick();
+      getItems()[0]?.focus();
     } else {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleKeydown);
@@ -109,34 +146,35 @@ onUnmounted(() => {
         v-if="visible"
         ref="menuRef"
         class="context-menu"
+        role="menu"
         :style="{ top: `${pos.y}px`, left: `${pos.x}px` }"
       >
-        <div class="menu-item" @click="handleEdit">
+        <div class="menu-item" role="menuitem" tabindex="-1" @click="handleEdit">
           <span class="menu-icon">✏️</span>
           <span class="menu-text">编辑</span>
         </div>
-        <div class="menu-divider"></div>
+        <div class="menu-divider" role="separator"></div>
         <!-- 加急选项 -->
-        <div v-if="!isUrgent" class="menu-item menu-item--urgent" @click="handleToggleUrgent">
+        <div v-if="!isUrgent" class="menu-item menu-item--urgent" role="menuitem" tabindex="-1" @click="handleToggleUrgent">
           <span class="menu-icon">⚡</span>
           <span class="menu-text">设为加急</span>
         </div>
-        <div v-else class="menu-item" @click="handleToggleUrgent">
+        <div v-else class="menu-item" role="menuitem" tabindex="-1" @click="handleToggleUrgent">
           <span class="menu-icon">📋</span>
           <span class="menu-text">取消加急</span>
         </div>
-        <div class="menu-divider"></div>
+        <div class="menu-divider" role="separator"></div>
         <!-- 计时器选项 -->
-        <div v-if="!hasTimer" class="menu-item" @click="handleSetTimer">
+        <div v-if="!hasTimer" class="menu-item" role="menuitem" tabindex="-1" @click="handleSetTimer">
           <span class="menu-icon">⏰</span>
           <span class="menu-text">设置计时器</span>
         </div>
-        <div v-else class="menu-item menu-item--warning" @click="handleCancelTimer">
+        <div v-else class="menu-item menu-item--warning" role="menuitem" tabindex="-1" @click="handleCancelTimer">
           <span class="menu-icon">⏱️</span>
           <span class="menu-text">取消计时器</span>
         </div>
-        <div class="menu-divider"></div>
-        <div class="menu-item menu-item--danger" @click="handleDelete">
+        <div class="menu-divider" role="separator"></div>
+        <div class="menu-item menu-item--danger" role="menuitem" tabindex="-1" @click="handleDelete">
           <span class="menu-icon">🗑️</span>
           <span class="menu-text">删除</span>
         </div>
@@ -166,11 +204,17 @@ onUnmounted(() => {
   transition: background-color 0.15s ease;
 }
 
-.menu-item:hover {
+.menu-item:hover,
+.menu-item:focus-visible {
   background-color: var(--hover-color, rgba(0, 0, 0, 0.05));
 }
 
-.menu-item--danger:hover {
+.menu-item:focus {
+  outline: none;
+}
+
+.menu-item--danger:hover,
+.menu-item--danger:focus-visible {
   background-color: rgba(239, 68, 68, 0.1);
 }
 
@@ -178,7 +222,8 @@ onUnmounted(() => {
   color: #ef4444;
 }
 
-.menu-item--warning:hover {
+.menu-item--warning:hover,
+.menu-item--warning:focus-visible {
   background-color: rgba(245, 158, 11, 0.1);
 }
 
@@ -186,7 +231,8 @@ onUnmounted(() => {
   color: #f59e0b;
 }
 
-.menu-item--urgent:hover {
+.menu-item--urgent:hover,
+.menu-item--urgent:focus-visible {
   background-color: rgba(245, 158, 11, 0.1);
 }
 

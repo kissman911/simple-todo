@@ -1,5 +1,8 @@
 <script setup lang="ts">
-defineProps<{
+import { ref } from 'vue';
+import { useDialogFocus } from '../composables/useDialogFocus';
+
+const props = defineProps<{
   visible: boolean;
   title: string;
   message: string;
@@ -11,6 +14,12 @@ const emit = defineEmits<{
   confirm: [];
   cancel: [];
 }>();
+
+const dialogRef = ref<HTMLDivElement | null>(null);
+const cancelRef = ref<HTMLButtonElement | null>(null);
+
+// 确认操作不可撤销，打开时聚焦「取消」，避免回车误触发
+useDialogFocus(() => props.visible, dialogRef, cancelRef, () => emit('cancel'));
 </script>
 
 <template>
@@ -18,7 +27,7 @@ const emit = defineEmits<{
     <Transition name="fade">
       <div v-if="visible" class="dialog-overlay" @click.self="emit('cancel')">
         <Transition name="scale">
-          <div v-if="visible" class="dialog">
+          <div v-if="visible" ref="dialogRef" class="dialog">
             <div class="dialog-header">
               <h3 class="dialog-title">{{ title }}</h3>
             </div>
@@ -26,7 +35,7 @@ const emit = defineEmits<{
               <p class="dialog-message">{{ message }}</p>
             </div>
             <div class="dialog-footer">
-              <button class="btn btn-cancel" @click="emit('cancel')">
+              <button ref="cancelRef" class="btn btn-cancel" @click="emit('cancel')">
                 {{ cancelText || '取消' }}
               </button>
               <button class="btn btn-confirm" @click="emit('confirm')">
