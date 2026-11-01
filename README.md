@@ -43,6 +43,14 @@
 - 记住窗口位置和大小
 - 最小化/关闭按钮
 
+### 贴边（仅 macOS）
+- 把窗口拖到屏幕左右的外侧边（往外没有别的显示器的那条边），松手时指针碰到边缘、或窗口越过边约 1/4 宽度，就变成悬浮球
+- 悬浮球显示未完成任务数（超过 99 显示 99+），有未完成的加急任务时变橙色，计时器到点时闪动，在所有 Space 显示
+- 点悬浮球打开预览，功能和普通窗口一样；点了别的地方就收回成悬浮球
+- 拖动悬浮球或预览的标题栏：松手时离外侧边不超过约 48px 就继续贴边（可以换到另一侧），否则还原成普通窗口
+- 重启后保持悬浮球；悬浮球所在的屏不在了，就贴到剩下的屏里最近的外侧边
+- 不支持键盘操作；Windows 和 Linux 上拖到边上和以前一样，不会贴边
+
 ## 截图
 
 ```
@@ -114,6 +122,7 @@ npm run tauri build
 simple-todo/
 ├── src/                      # 前端源码
 │   ├── components/           # Vue 组件
+│   │   ├── FloatingBall.vue # 贴边后的悬浮球
 │   │   ├── TitleBar.vue     # 自定义标题栏
 │   │   ├── TaskList.vue     # 任务列表
 │   │   ├── TaskItem.vue     # 任务项
@@ -123,21 +132,26 @@ simple-todo/
 │   │   └── TimerDialog.vue  # 计时器设置
 │   ├── composables/          # 组合式函数
 │   │   ├── useTaskStore.ts  # 任务状态管理
+│   │   ├── useDock.ts       # 贴边：普通窗口 / 悬浮球 / 预览的切换
 │   │   └── useTheme.ts      # 主题管理
 │   ├── services/             # 服务层
+│   │   ├── dock.ts          # 贴边的 Rust command
+│   │   ├── dockLayout.ts    # 贴边判定、外侧边、重新定位等纯逻辑
 │   │   ├── storage.ts       # 数据持久化
 │   │   ├── timer.ts         # 计时器服务
 │   │   ├── notification.ts  # 通知服务
 │   │   ├── autostart.ts     # 开机自启
 │   │   └── window.ts        # 窗口管理
 │   ├── types/                # 类型定义
+│   │   ├── dock.ts          # 贴边相关的几何类型
 │   │   └── task.ts          # 任务类型
 │   ├── App.vue               # 主组件
 │   └── main.ts               # 入口文件
 ├── src-tauri/                # Tauri 后端
 │   ├── src/
 │   │   ├── main.rs          # Rust 入口
-│   │   └── lib.rs           # 插件注册、窗口毛玻璃效果
+│   │   ├── lib.rs           # 插件注册、窗口毛玻璃效果
+│   │   └── dock.rs          # 贴边（macOS）：屏幕布局、窗口尺寸位置、跟踪鼠标
 │   ├── capabilities/         # 权限配置
 │   ├── icons/                # 应用图标
 │   ├── Cargo.toml           # Rust 依赖
@@ -176,8 +190,17 @@ interface Task {
 
 interface Settings {
   theme: 'light' | 'dark' | 'system';
-  windowPosition: { x: number; y: number } | null;
-  windowSize: { width: number; height: number } | null;
+  windowPosition: { x: number; y: number } | null;  // 普通窗口，物理像素
+  windowSize: { width: number; height: number } | null;  // 普通窗口，物理像素
+  dock: DockState | null;  // 已贴边时的状态，仅 macOS 写入；旧数据没有这个字段时按 null 处理
+}
+
+// 坐标都是全局 points：原点在主屏左上角，y 轴向下
+interface DockState {
+  side: 'left' | 'right';  // 贴在哪一侧
+  top: number;  // 悬浮球顶边的 y
+  screen: { x: number; y: number; width: number; height: number };  // 悬浮球所在屏的 frame
+  normalSize: { width: number; height: number };  // 贴边前普通窗口的尺寸，预览和还原都用它
 }
 ```
 
@@ -194,6 +217,8 @@ interface Settings {
 | 切换主题 | 点击标题栏主题图标 |
 | 开机自启 | 点击标题栏电源图标 |
 | 移动窗口 | 拖拽标题栏 |
+| 贴边（macOS） | 把标题栏拖到屏幕左右的外侧边松手 |
+| 还原 | 把悬浮球或预览的标题栏拖离边缘 |
 
 ## 开发指南
 

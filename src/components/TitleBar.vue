@@ -1,11 +1,29 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { useTheme } from '../composables/useTheme';
+import { useDock } from '../composables/useDock';
 import { checkAutoStart, toggleAutoStart } from '../services/autostart';
 
 const appWindow = getCurrentWindow();
 const { theme, cycleTheme, getThemeLabel } = useTheme();
+const dock = useDock();
+
+// 预览：隐藏最小化按钮，标题栏不用原生拖动
+const isPreview = computed(() => dock.mode.value === 'preview');
+
+// 标题栏按下（按钮上的不算）：和 drag.js 判断拖动区域的条件一致
+function handleMouseDown(event: MouseEvent) {
+  const target = event.target as HTMLElement;
+  if (event.button !== 0 || event.detail !== 1 || !target.hasAttribute('data-tauri-drag-region')) return;
+  if (isPreview.value) {
+    event.preventDefault();
+    dock.pressPreviewTitleBar();
+  } else {
+    // drag.js 会开始原生拖动，这里等它结束再判断要不要贴边
+    dock.watchTitleBarDrag();
+  }
+}
 
 // 自启动状态
 const autoStartEnabled = ref(false);
@@ -42,8 +60,8 @@ function getThemeIcon(t: string): string {
 </script>
 
 <template>
-  <div class="title-bar" data-tauri-drag-region>
-    <span class="title" data-tauri-drag-region>SimpleTodo</span>
+  <div class="title-bar" :data-tauri-drag-region="isPreview ? 'false' : ''" @mousedown="handleMouseDown">
+    <span class="title" :data-tauri-drag-region="isPreview ? 'false' : ''">SimpleTodo</span>
     <div class="window-controls">
       <button
         class="control-btn autostart"
@@ -65,7 +83,7 @@ function getThemeIcon(t: string): string {
       >
         {{ getThemeIcon(theme) }}
       </button>
-      <button class="control-btn minimize" @click="minimizeWindow" title="最小化" aria-label="最小化">
+      <button v-if="!isPreview" class="control-btn minimize" @click="minimizeWindow" title="最小化" aria-label="最小化">
         <svg width="12" height="12" viewBox="0 0 12 12">
           <rect x="2" y="5.5" width="8" height="1" fill="currentColor"/>
         </svg>

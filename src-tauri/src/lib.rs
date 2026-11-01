@@ -1,5 +1,32 @@
 use tauri::Manager;
 
+// 贴边只做 macOS
+#[cfg(target_os = "macos")]
+mod dock;
+
+/// 当前平台支不支持贴边
+#[cfg(not(target_os = "macos"))]
+#[tauri::command]
+fn dock_supported() -> bool {
+    false
+}
+
+#[cfg(target_os = "macos")]
+fn invoke_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync + 'static {
+    tauri::generate_handler![
+        dock::dock_supported,
+        dock::dock_screens,
+        dock::dock_set_frame,
+        dock::dock_track_press,
+        dock::dock_watch_drag,
+    ]
+}
+
+#[cfg(not(target_os = "macos"))]
+fn invoke_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync + 'static {
+    tauri::generate_handler![dock_supported]
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -9,6 +36,7 @@ pub fn run() {
             Some(vec!["--minimized"]),
         ))
         .plugin(tauri_plugin_notification::init())
+        .invoke_handler(invoke_handler())
         .setup(|app| {
             let window = app.get_webview_window("main").unwrap();
 

@@ -27,7 +27,7 @@ vi.mock('@tauri-apps/api/window', () => ({
 }));
 
 function settings(x: number, y: number): Settings {
-  return { theme: 'system', windowPosition: { x, y }, windowSize: { width: 280, height: 360 } };
+  return { theme: 'system', windowPosition: { x, y }, windowSize: { width: 280, height: 360 }, dock: null };
 }
 
 describe('window state', () => {
