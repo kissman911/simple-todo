@@ -16,10 +16,11 @@ const emit = defineEmits<{
 const selectedPreset = ref(TIMER_PRESETS[2].value); // 默认 25 分钟
 const customMinutes = ref(10);
 
-// 计算最终时长（秒）
+// 计算最终时长（秒），自定义分钟数不是 1-999 的整数时为 0
 const finalDuration = computed(() => {
   if (selectedPreset.value === -1) {
-    return customMinutes.value * 60;
+    const minutes = customMinutes.value;
+    return Number.isInteger(minutes) && minutes >= 1 && minutes <= 999 ? minutes * 60 : 0;
   }
   return selectedPreset.value;
 });
@@ -92,7 +93,7 @@ function selectCustom() {
               <button class="btn btn-cancel" @click="emit('cancel')">
                 取消
               </button>
-              <button class="btn btn-confirm" @click="handleConfirm">
+              <button class="btn btn-confirm" :disabled="finalDuration === 0" @click="handleConfirm">
                 开始计时
               </button>
             </div>
@@ -119,8 +120,8 @@ function selectCustom() {
   background-color: var(--bg-color);
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  min-width: 300px;
-  max-width: 90%;
+  width: calc(100% - 24px);
+  max-width: 320px;
   overflow: hidden;
 }
 
@@ -254,6 +255,12 @@ function selectCustom() {
 
 .btn-confirm:hover {
   filter: brightness(1.1);
+}
+
+.btn-confirm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: none;
 }
 
 .btn:active {

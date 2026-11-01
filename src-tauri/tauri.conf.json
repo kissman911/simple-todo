@@ -10,6 +10,7 @@
     "frontendDist": "../dist"
   },
   "app": {
+    "macOSPrivateApi": true,
     "windows": [
       {
         "title": "SimpleTodo",
@@ -22,7 +23,8 @@
         "alwaysOnTop": true,
         "resizable": true,
         "visible": true,
-        "focus": true
+        "focus": true,
+        "backgroundThrottling": "disabled"
       }
     ],
     "security": {

@@ -4,7 +4,6 @@ export type Theme = 'light' | 'dark' | 'system';
 
 // 全局主题状态
 const currentTheme = ref<Theme>('system');
-const actualTheme = ref<'light' | 'dark'>('light');
 
 // 获取系统主题
 function getSystemTheme(): 'light' | 'dark' {
@@ -14,7 +13,6 @@ function getSystemTheme(): 'light' | 'dark' {
 // 应用主题到 DOM
 function applyTheme(theme: Theme) {
   const actual = theme === 'system' ? getSystemTheme() : theme;
-  actualTheme.value = actual;
   document.documentElement.setAttribute('data-theme', actual);
 }
 
@@ -75,7 +73,6 @@ export function useTheme() {
 
   return {
     theme: currentTheme,
-    actualTheme,
     setTheme,
     cycleTheme,
     getThemeLabel,

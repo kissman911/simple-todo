@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue';
+import { ref, computed, nextTick, onUnmounted, watch } from 'vue';
 import type { Task } from '../types/task';
 import ContextMenu from './ContextMenu.vue';
 import { formatTime, getRemainingSeconds } from '../services/timer';
@@ -85,19 +85,20 @@ watch(
   { immediate: true }
 );
 
-onMounted(() => {
-  if (props.task.timerEndTime) {
-    startLocalTimer();
-  }
-});
-
 onUnmounted(() => {
   stopLocalTimer();
 });
 
+// 编辑时在输入框外按下鼠标会先触发 blur 结束编辑，随后的 click 不应再切换完成状态
+let editingOnMouseDown = false;
+
+function handleMouseDown() {
+  editingOnMouseDown = isEditing.value;
+}
+
 // 点击切换完成状态
 function handleClick() {
-  if (!isEditing.value) {
+  if (!isEditing.value && !editingOnMouseDown) {
     emit('toggle', props.task.id);
   }
 }
@@ -142,6 +143,8 @@ function cancelEdit() {
 
 // 编辑时按键处理
 function handleEditKeydown(event: KeyboardEvent) {
+  // 输入法组合输入中的按键交给输入法处理（同 TaskInput）
+  if (event.isComposing || event.keyCode === 229) return;
   if (event.key === 'Enter') {
     event.preventDefault();
     saveEdit();
@@ -176,6 +179,7 @@ function handleToggleUrgent() {
   <div
     class="task-item"
     :class="{ completed: task.completed, editing: isEditing, 'has-timer': hasTimer, urgent: isUrgent }"
+    @mousedown="handleMouseDown"
     @click="handleClick"
     @contextmenu="handleContextMenu"
   >

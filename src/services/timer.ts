@@ -1,12 +1,8 @@
-import { ref } from 'vue';
 import type { Task } from '../types/task';
 import { sendTaskReminder } from './notification';
 
 // 存储每个任务的定时器 ID
 const timerIntervals = new Map<string, ReturnType<typeof setInterval>>();
-
-// 存储每个任务的剩余时间（秒）- 用于响应式 UI 更新
-const remainingTimes = ref<Map<string, number>>(new Map());
 
 // 格式化时间为 mm:ss
 export function formatTime(seconds: number): string {
@@ -25,33 +21,21 @@ export function getRemainingSeconds(endTime: string | null): number {
 }
 
 // 启动任务计时器
-export function startTaskTimer(
-  task: Task,
-  onExpire: () => void,
-  onTick?: (remaining: number) => void
-): void {
+export function startTaskTimer(task: Task, onExpire: () => void): void {
   // 清除已存在的计时器
   stopTaskTimer(task.id);
 
   if (!task.timerEndTime) return;
 
-  // 更新初始剩余时间
-  const initialRemaining = getRemainingSeconds(task.timerEndTime);
-  remainingTimes.value.set(task.id, initialRemaining);
-
   // 如果已经过期，直接触发
-  if (initialRemaining <= 0) {
+  if (getRemainingSeconds(task.timerEndTime) <= 0) {
     handleTimerExpire(task, onExpire);
     return;
   }
 
-  // 每秒更新一次
+  // 每秒检查一次
   const interval = setInterval(() => {
-    const remaining = getRemainingSeconds(task.timerEndTime);
-    remainingTimes.value.set(task.id, remaining);
-    onTick?.(remaining);
-
-    if (remaining <= 0) {
+    if (getRemainingSeconds(task.timerEndTime) <= 0) {
       handleTimerExpire(task, onExpire);
     }
   }, 1000);
@@ -73,24 +57,6 @@ export function stopTaskTimer(taskId: string): void {
     clearInterval(interval);
     timerIntervals.delete(taskId);
   }
-  remainingTimes.value.delete(taskId);
-}
-
-// 获取任务的剩余时间（响应式）
-export function getTaskRemainingTime(taskId: string): number {
-  return remainingTimes.value.get(taskId) ?? 0;
-}
-
-// 获取所有剩余时间的响应式对象
-export function useRemainingTimes() {
-  return remainingTimes;
-}
-
-// 清除所有计时器
-export function clearAllTimers(): void {
-  timerIntervals.forEach((interval) => clearInterval(interval));
-  timerIntervals.clear();
-  remainingTimes.value.clear();
 }
 
 // 预设时间选项（秒）

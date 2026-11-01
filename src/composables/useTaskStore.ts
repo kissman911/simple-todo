@@ -36,13 +36,6 @@ export function useTaskStore() {
     return [...urgentPending, ...normalPending, ...completed];
   });
 
-  // 统计信息
-  const stats = computed(() => ({
-    total: tasks.value.length,
-    pending: tasks.value.filter((t) => !t.completed).length,
-    completed: tasks.value.filter((t) => t.completed).length,
-  }));
-
   // 初始化：加载数据
   async function init(): Promise<void> {
     if (isLoaded.value) return;
@@ -141,11 +134,6 @@ export function useTaskStore() {
     await save();
   }
 
-  // 获取有计时器的任务
-  function getTasksWithTimers(): typeof tasks.value {
-    return tasks.value.filter((t) => t.timerEndTime !== null);
-  }
-
   // 切换任务加急状态
   async function toggleUrgent(id: string): Promise<void> {
     const task = tasks.value.find((t) => t.id === id);
@@ -159,8 +147,6 @@ export function useTaskStore() {
     // 状态
     tasks: sortedTasks,
     settings,
-    stats,
-    isLoaded,
 
     // 方法
     init,
@@ -172,7 +158,6 @@ export function useTaskStore() {
     clearCompleted,
     setTaskTimer,
     cancelTaskTimer,
-    getTasksWithTimers,
     toggleUrgent,
   };
 }

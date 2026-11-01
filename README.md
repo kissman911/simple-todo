@@ -11,7 +11,7 @@
 
 - **轻量小巧** - 窗口默认 280×360，可调整大小
 - **桌面置顶** - 始终保持在其他窗口之上
-- **透明毛玻璃** - 现代化的视觉效果
+- **透明毛玻璃** - 现代化的视觉效果（Windows / macOS）
 - **深色/浅色主题** - 支持手动切换和跟随系统
 - **数据本地存储** - 所有数据保存在本地，保护隐私
 
@@ -106,6 +106,8 @@ npm run tauri build
 
 构建产物位于 `src-tauri/target/release/bundle/` 目录。
 
+> macOS 的毛玻璃效果依赖 Tauri 的 `macOSPrivateApi`（私有 API），开启后构建的应用无法上架 Mac App Store。
+
 ## 项目结构
 
 ```
@@ -126,6 +128,7 @@ simple-todo/
 │   │   ├── storage.ts       # 数据持久化
 │   │   ├── timer.ts         # 计时器服务
 │   │   ├── notification.ts  # 通知服务
+│   │   ├── autostart.ts     # 开机自启
 │   │   └── window.ts        # 窗口管理
 │   ├── types/                # 类型定义
 │   │   └── task.ts          # 任务类型
@@ -133,7 +136,8 @@ simple-todo/
 │   └── main.ts               # 入口文件
 ├── src-tauri/                # Tauri 后端
 │   ├── src/
-│   │   └── main.rs          # Rust 入口
+│   │   ├── main.rs          # Rust 入口
+│   │   └── lib.rs           # 插件注册、窗口毛玻璃效果
 │   ├── capabilities/         # 权限配置
 │   ├── icons/                # 应用图标
 │   ├── Cargo.toml           # Rust 依赖
@@ -147,9 +151,9 @@ simple-todo/
 
 应用数据以 JSON 格式存储在用户目录：
 
-- **Windows**: `%APPDATA%\com.simpletodo.app\data.json`
-- **macOS**: `~/Library/Application Support/com.simpletodo.app/data.json`
-- **Linux**: `~/.config/com.simpletodo.app/data.json`
+- **Windows**: `%APPDATA%\com.simpletodo.app\SimpleTodo\data.json`
+- **macOS**: `~/Library/Application Support/com.simpletodo.app/SimpleTodo/data.json`
+- **Linux**: `~/.local/share/com.simpletodo.app/SimpleTodo/data.json`
 
 ### 数据结构
 
@@ -188,6 +192,7 @@ interface Settings {
 | 设为加急 | 右键 → 设为加急 |
 | 设置提醒 | 右键 → 设置计时器 |
 | 切换主题 | 点击标题栏主题图标 |
+| 开机自启 | 点击标题栏电源图标 |
 | 移动窗口 | 拖拽标题栏 |
 
 ## 开发指南
@@ -207,6 +212,9 @@ npm run tauri dev
 
 # 类型检查
 npm run build
+
+# 运行测试
+npm test
 
 # 构建应用
 npm run tauri build

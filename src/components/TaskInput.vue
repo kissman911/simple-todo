@@ -20,6 +20,8 @@ function handleSubmit() {
 }
 
 function handleKeydown(event: KeyboardEvent) {
+  // 输入法组合输入中的回车用于上屏，不提交（WKWebView 里此时 isComposing 可能已是 false，keyCode 仍为 229）
+  if (event.isComposing || event.keyCode === 229) return;
   if (event.key === 'Enter' && !event.shiftKey) {
     event.preventDefault();
     handleSubmit();
